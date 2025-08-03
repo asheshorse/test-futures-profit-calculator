@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期货历史盈利回测器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+        }
+      
+        body {
+            background: linear-gradient(135deg, #1a237e, #283593, #3949ab);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+      
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+      
+        header {
+            text-align: center;
+            padding: 30px 0;
+            color: white;
+        }
+      
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+      
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+      
+        .panel {
+            background: rgba(255, 255, 255, 0.92);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 25px 0;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+      
+        .panel-title {
+            font-size: 1.8rem;
+            color: #1a237e;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+      
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+      
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+      
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+      
+        .form-group input, 
+        .form-group select {
+            padding: 14px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+      
+        .form-group input:focus, 
+        .form-group select:focus {
+            outline: none;
+            border-color: #3949ab;
+            box-shadow: 0 0 8px rgba(57, 73, 171, 0.3);
+        }
+      
+        .calc-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 10px;
+        }
+      
+        .result-box {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+      
+        .result-label {
+            font-size: 0.95rem;
+            color: #555;
+            margin-bottom: 8px;
+        }
+      
+        .result-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #1a237e;
+        }
+      
+        .result-warning {
+            color: #e53935;
+            font-weight: bold;
+        }
+      
+        .btn-container {
+            text-align: center;
+            margin: 30px 0 20px;
+        }
+      
+        .btn {
+            padding: 16px 45px;
+            background: #3949ab;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+      
+        .btn:hover {
+            background: #283593;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+      
+        .btn:active {
+            transform: translateY(0);
+        }
+      
+        .btn-reset {
+            background: #e53935;
+            margin-left: 15px;
+        }
+      
+        .btn-reset:hover {
+            background: #c62828;
+        }
+      
+        .result-table-container {
+            overflow-x: auto;
+            margin-top: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+      
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            min-width: 800px;
+        }
+      
+        .result-table th {
+            background: #1a237e;
+            color: white;
+            padding: 16px 12px;
+            text-align: center;
+            font-weight: bold;
+        }
+      
+        .result-table td {
+            padding: 14px 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+      
+        .result-table tr:nth-child(even) {
+            background: #f5f7ff;
+        }
+      
+        .result-table tr:hover {
+            background: #e3f2fd;
+        }
+      
+        .result-table .profit {
+            color: #388e3c;
+            font-weight: bold;
+        }
+      
+        .result-table .loss {
+            color: #e53935;
+            font-weight: bold;
+        }
+      
+        .result-table .total-row {
+            background: #e3f2fd;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+      
+        .summary {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 25px;
+            border-left: 4px solid #388e3c;
+        }
+      
+        .summary-title {
+            font-size: 1.4rem;
+            color: #1a237e;
+            margin-bottom: 15px;
+        }
+      
+        .summary-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+      
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+        }
+      
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #1a237e;
+            margin: 8px 0;
+        }
+      
+        .profit-summary {
+            color: #388e3c;
+        }
+      
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 30px 0 20px;
+            font-size: 0.95rem;
+        }
+      
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+          
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+          
+            .btn-container {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+          
+            .btn-reset {
+                margin-left: 0;
+            }
+        }
+      
+        @media (max-width: 480px) {
+            .panel {
+                padding: 20px 15px;
+            }
+          
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>期货历史盈利回测器</h1>
+            <p class="subtitle">通过历史数据模拟您的期货交易策略，分析不同加仓方式下的盈利情况</p>
+        </header>
+      
+        <div class="panel">
+            <h2 class="panel-title">期货参数设置</h2>
+          
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="futures-type">📊 期货品种</label>
+                    <select id="futures-type">
+                        <option value="">-- 请选择期货品种 --</option>
+                        <option value="cu" data-multiplier="5">铜 (CU) - 5吨/手</option>
+                        <option value="al" data-multiplier="5">铝 (AL) - 5吨/手</option>
+                        <option value="zn" data-multiplier="5">锌 (ZN) - 5吨/手</option>
+                        <option value="au" data-multiplier="1000">黄金 (AU) - 1000克/手</option>
+                        <option value="ag" data-multiplier="15">白银 (AG) - 15千克/手</option>
+                        <option value="rb" data-multiplier="10">螺纹钢 (RB) - 10吨/手</option>
+                        <option value="hc" data-multiplier="10">热轧卷板 (HC) - 10吨/手</option>
+                        <option value="fu" data-multiplier="10">燃料油 (FU) - 10吨/手</option>
+                        <option value="bu" data-multiplier="10">石油沥青 (BU) - 10吨/手</option>
+                        <option value="ru" data-multiplier="10">天然橡胶 (RU) - 10吨/手</option>
+                    </select>
+                </div>
+              
+                <div class="form-group">
+                    <label for="open-type">📈 开仓方式</label>
+                    <select id="open-type">
+                        <option value="">-- 请选择开仓方式 --</option>
+                        <option value="long">多开 (买入开仓)</option>
+                        <option value="short">空开 (卖出开仓)</option>
+                    </select>
+                </div>
+              
+                <div class="form-group">
+                    <label for="margin-rate">💰 保证金率 (%)</label>
+                    <input type="number" id="margin-rate" min="5" max="100" step="1" value="10" placeholder="输入保证金率">
+                </div>
+              
+                <div class="form-group">
+                    <label for="investment">💵 购买金额 (元)</label>
+                    <input type="number" id="investment" min="1000" step="1000" value="100000" placeholder="输入购买金额">
+                </div>
+              
+                <div class="form-group">
+                    <label for="open-price">⚖️ 开仓价格</label>
+                    <input type="number" id="open-price" min="1" step="0.01" value="5000" placeholder="开仓价格">
+                </div>
+              
+                <div class="form-group">
+                    <label for="close-price">📉 平仓价格</label>
+                    <input type="number" id="close-price" min="1" step="0.01" value="5500" placeholder="平仓价格">
+                </div>
+              
+                <div class="form-group">
+                    <label for="add-position-type">📦 浮盈加仓方式</label>
+                    <select id="add-position-type">
+                        <option value="">-- 请选择加仓方式 --</option>
+                        <option value="pyramid">倒金字塔加仓</option>
+                        <option value="percent">每涨10%加仓</option>
+                    </select>
+                </div>
+            </div>
+          
+            <div class="calc-results">
+                <div class="result-box">
+                    <div class="result-label">交易乘数</div>
+                    <div class="result-value" id="multiplier-result">--</div>
+                </div>
+              
+                <div class="result-box">
+                    <div class="result-label">平仓方式</div>
+                    <div class="result-value" id="close-type-result">--</div>
+                </div>
+              
+                <div class="result-box">
+                    <div class="result-label">一手保证金</div>
+                    <div class="result-value" id="margin-per-lot">--</div>
+                </div>
+              
+                <div class="result-box">
+                    <div class="result-label">最大可买手数</div>
+                    <div class="result-value" id="max-lots">--</div>
+                </div>
+            </div>
+          
+            <div class="btn-container">
+                <button class="btn" id="calculate-btn">开始回测计算</button>
+                <button class="btn btn-reset" id="reset-btn">重置参数</button>
+            </div>
+        </div>
+      
+        <div class="panel" id="result-panel" style="display: none;">
+            <h2 class="panel-title">回测结果分析</h2>
+          
+            <div class="result-table-container">
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>操作</th>
+                            <th>价格</th>
+                            <th>开仓手数</th>
+                            <th>累计手数</th>
+                            <th>持仓均价</th>
+                            <th>浮动盈亏</th>
+                            <th>累计盈亏</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-table-body">
+                        <!-- 结果将通过JavaScript动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+          
+            <div class="summary">
+                <h3 class="summary-title">交易总结</h3>
+                <div class="summary-content" id="summary-content">
+                    <!-- 总结将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+      
+        <footer>
+            <p>© 2025 期货历史盈利回测器 | 数据仅供参考，实际交易请谨慎决策</p>
+        </footer>
+    </div>
+
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const futuresTypeSelect = document.getElementById('futures-type');
+            const openTypeSelect = document.getElementById('open-type');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const resultPanel = document.getElementById('result-panel');
+          
+            // 设置事件监听器
+            futuresTypeSelect.addEventListener('change', updateMultiplier);
+            openTypeSelect.addEventListener('change', updateCloseType);
+            calculateBtn.addEventListener('click', calculateResults);
+            resetBtn.addEventListener('click', resetForm);
+          
+            // 初始化显示
+            updateMultiplier();
+            updateCloseType();
+        });
+      
+        // 更新交易乘数
+        function updateMultiplier() {
+            const futuresTypeSelect = document.getElementById('futures-type');
+            const multiplierResult = document.getElementById('multiplier-result');
+          
+            const selectedOption = futuresTypeSelect.options[futuresTypeSelect.selectedIndex];
+            if (selectedOption.value) {
+                const multiplier = selectedOption.getAttribute('data-multiplier');
+                multiplierResult.textContent = multiplier + '元/点';
+            } else {
+                multiplierResult.textContent = '--';
+            }
+        }
+      
+        // 更新平仓方式
+        function updateCloseType() {
+            const openTypeSelect = document.getElementById('open-type');
+            const closeTypeResult = document.getElementById('close-type-result');
+          
+            if (openTypeSelect.value === 'long') {
+                closeTypeResult.textContent = '多平 (卖出平仓)';
+            } else if (openTypeSelect.value === 'short') {
+                closeTypeResult.textContent = '空平 (买入平仓)';
+            } else {
+                closeTypeResult.textContent = '--';
+            }
+        }
+      
+        // 计算一手保证金和最大可买手数
+        function calculateInitialParams() {
+            const marginRate = parseFloat(document.getElementById('margin-rate').value) / 100;
+            const investment = parseFloat(document.getElementById('investment').value);
+            const openPrice = parseFloat(document.getElementById('open-price').value);
+          
+            const futuresTypeSelect = document.getElementById('futures-type');
+            const selectedOption = futuresTypeSelect.options[futuresTypeSelect.selectedIndex];
+            const multiplier = parseFloat(selectedOption.getAttribute('data-multiplier'));
+          
+            // 计算一手保证金
+            const marginPerLot = openPrice * multiplier * marginRate;
+          
+            // 计算最大可买手数
+            const maxLots = Math.floor(investment / marginPerLot);
+          
+            // 更新显示
+            document.getElementById('margin-per-lot').textContent = marginPerLot.toFixed(2) + '元';
+            document.getElementById('max-lots').textContent = maxLots + '手';
+          
+            if (maxLots < 1) {
+                document.getElementById('max-lots').className = 'result-value result-warning';
+                document.getElementById('max-lots').textContent += ' (不足1手)';
+            } else {
+                document.getElementById('max-lots').className = 'result-value';
+            }
+          
+            return {
+                multiplier: multiplier,
+                marginPerLot: marginPerLot,
+                maxLots: maxLots
+            };
+        }
+      
+        // 重置表单
+        function resetForm() {
+            document.getElementById('futures-type').selectedIndex = 0;
+            document.getElementById('open-type').selectedIndex = 0;
+            document.getElementById('margin-rate').value = 10;
+            document.getElementById('investment').value = 100000;
+            document.getElementById('open-price').value = 5000;
+            document.getElementById('close-price').value = 5500;
+            document.getElementById('add-position-type').selectedIndex = 0;
+          
+            updateMultiplier();
+            updateCloseType();
+          
+            // 重置计算结果
+            document.getElementById('margin-per-lot').textContent = '--';
+            document.getElementById('max-lots').textContent = '--';
+            document.getElementById('max-lots').className = 'result-value';
+          
+            resultPanel.style.display = 'none';
+        }
+      
+        // 计算回测结果
+        function calculateResults() {
+            // 验证输入
+            if (!validateInputs()) {
+                return;
+            }
+          
+            // 获取初始参数
+            const params = calculateInitialParams();
+            if (params.maxLots < 1) {
+                alert('购买金额不足开仓1手，请增加投资金额');
+                return;
+            }
+          
+            // 获取其他参数
+            const openType = document.getElementById('open-type').value;
+            const openPrice = parseFloat(document.getElementById('open-price').value);
+            const closePrice = parseFloat(document.getElementById('close-price').value);
+            const addPositionType = document.getElementById('add-position-type').value;
+          
+            // 计算加仓次数和价格
+            const priceChange = Math.abs(closePrice - openPrice);
+            const priceStep = openPrice * 0.1; // 10%的价格变化
+            const steps = Math.min(Math.floor(priceChange / priceStep), 5); // 最多5次加仓
+          
+            // 创建交易记录
+            const transactions = [];
+            let totalLots = 0;
+            let totalCost = 0;
+            let totalProfit = 0;
+            let cumulativeProfit = 0;
+          
+            // 初始开仓
+            const initialLots = params.maxLots;
+            totalLots = initialLots;
+            totalCost = initialLots * openPrice;
+            const avgPrice = totalCost / totalLots;
+          
+            // 计算初始盈亏
+            let profit = calculateProfit(openType, openPrice, closePrice, initialLots, params.multiplier);
+            cumulativeProfit += profit;
+          
+            transactions.push({
+                operation: '初始开仓',
+                price: openPrice,
+                lots: initialLots,
+                totalLots: totalLots,
+                avgPrice: avgPrice,
+                profit: profit,
+                cumulativeProfit: cumulativeProfit
+            });
+          
+            // 模拟加仓操作
+            let lastPrice = openPrice;
+            let lastLots = initialLots;
+          
+            for (let i = 1; i <= steps; i++) {
+                // 确定加仓价格
+                const addPrice = openType === 'long' ? 
+                    openPrice + (priceStep * i) : 
+                    openPrice - (priceStep * i);
+              
+                // 确定加仓手数
+                let addLots;
+                if (addPositionType === 'pyramid') {
+                    // 倒金字塔加仓：每次加仓手数减半
+                    addLots = Math.max(Math.floor(lastLots / 2), 1);
+                } else {
+                    // 每涨10%加仓：每次加仓手数等于初始手数
+                    addLots = initialLots;
+                }
+              
+                // 更新持仓
+                totalLots += addLots;
+                totalCost += addPrice * addLots;
+                const newAvgPrice = totalCost / totalLots;
+              
+                // 计算本次加仓的浮动盈亏
+                profit = calculateProfit(openType, newAvgPrice, addPrice, totalLots, params.multiplier);
+                cumulativeProfit += calculateProfit(openType, lastPrice, addPrice, lastLots, params.multiplier);
+              
+                transactions.push({
+                    operation: `第${i}次加仓`,
+                    price: addPrice,
+                    lots: addLots,
+                    totalLots: totalLots,
+                    avgPrice: newAvgPrice,
+                    profit: profit,
+                    cumulativeProfit: cumulativeProfit
+                });
+              
+                lastPrice = addPrice;
+                lastLots = totalLots;
+            }
+          
+            // 最终平仓
+            const finalProfit = calculateProfit(openType, avgPrice, closePrice, totalLots, params.multiplier);
+            cumulativeProfit += calculateProfit(openType, lastPrice, closePrice, totalLots, params.multiplier);
+          
+            transactions.push({
+                operation: '最终平仓',
+                price: closePrice,
+                lots: totalLots,
+                totalLots: 0,
+                avgPrice: 0,
+                profit: finalProfit,
+                cumulativeProfit: cumulativeProfit
+            });
+          
+            // 显示结果
+            displayResults(transactions, params);
+        }
+      
+        // 计算单次盈亏
+        function calculateProfit(openType, avgPrice, currentPrice, lots, multiplier) {
+            if (openType === 'long') {
+                return (currentPrice - avgPrice) * lots * multiplier;
+            } else {
+                return (avgPrice - currentPrice) * lots * multiplier;
+            }
+        }
+      
+        // 验证输入
+        function validateInputs() {
+            const futuresType = document.getElementById('futures-type').value;
+            const openType = document.getElementById('open-type').value;
+            const marginRate = document.getElementById('margin-rate').value;
+            const investment = document.getElementById('investment').value;
+            const openPrice = document.getElementById('open-price').value;
+            const closePrice = document.getElementById('close-price').value;
+            const addPositionType = document.getElementById('add-position-type').value;
+          
+            if (!futuresType) {
+                alert('请选择期货品种');
+                return false;
+            }
+          
+            if (!openType) {
+                alert('请选择开仓方式');
+                return false;
+            }
+          
+            if (!marginRate || marginRate <= 0 || marginRate > 100) {
+                alert('请输入有效的保证金率 (0-100)');
+                return false;
+            }
+          
+            if (!investment || investment <= 0) {
+                alert('请输入有效的购买金额');
+                return false;
+            }
+          
+            if (!openPrice || openPrice <= 0) {
+                alert('请输入有效的开仓价格');
+                return false;
+            }
+          
+            if (!closePrice || closePrice <= 0) {
+                alert('请输入有效的平仓价格');
+                return false;
+            }
+          
+            if (!addPositionType) {
+                alert('请选择加仓方式');
+                return false;
+            }
+          
+            return true;
+        }
+      
+        // 显示结果
+        function displayResults(transactions, params) {
+            const resultPanel = document.getElementById('result-panel');
+            const tableBody = document.getElementById('result-table-body');
+            const summaryContent = document.getElementById('summary-content');
+          
+            // 清空表格
+            tableBody.innerHTML = '';
+            summaryContent.innerHTML = '';
+          
+            // 填充表格
+            transactions.forEach(trans => {
+                const row = document.createElement('tr');
+              
+                // 为最后一行添加特殊样式
+                if (trans.operation === '最终平仓') {
+                    row.className = 'total-row';
+                }
+              
+                // 格式化盈亏显示
+                const profitClass = trans.profit >= 0 ? 'profit' : 'loss';
+                const profitText = trans.profit >= 0 ? 
+                    `+${trans.profit.toFixed(2)}` : 
+                    trans.profit.toFixed(2);
+              
+                const cumulativeProfitClass = trans.cumulativeProfit >= 0 ? 'profit' : 'loss';
+                const cumulativeProfitText = trans.cumulativeProfit >= 0 ? 
+                    `+${trans.cumulativeProfit.toFixed(2)}` : 
+                    trans.cumulativeProfit.toFixed(2);
+              
+                row.innerHTML = `
+                    <td>${trans.operation}</td>
+                    <td>${trans.price.toFixed(2)}</td>
+                    <td>${trans.lots}</td>
+                    <td>${trans.totalLots}</td>
+                    <td>${trans.avgPrice ? trans.avgPrice.toFixed(2) : '--'}</td>
+                    <td class="${profitClass}">${profitText}</td>
+                    <td class="${cumulativeProfitClass}">${cumulativeProfitText}</td>
+                `;
+              
+                tableBody.appendChild(row);
+            });
+          
+            // 创建总结
+            const finalTransaction = transactions[transactions.length - 1];
+          
+            summaryContent.innerHTML = `
+                <div class="summary-item">
+                    <div>总交易次数</div>
+                    <div class="summary-value">${transactions.length - 1}</div>
+                    <div>初始开仓 + ${transactions.length - 2}次加仓 + 最终平仓</div>
+                </div>
+              
+                <div class="summary-item">
+                    <div>最大持仓手数</div>
+                    <div class="summary-value">${Math.max(...transactions.slice(0, -1).map(t => t.totalLots))}</div>
+                    <div>交易乘数: ${params.multiplier}元/点</div>
+                </div>
+              
+                <div class="summary-item">
+                    <div>最终盈利</div>
+                    <div class="summary-value profit-summary">${finalTransaction.cumulativeProfit >= 0 ? '+' : ''}${finalTransaction.cumulativeProfit.toFixed(2)}元</div>
+                    <div>收益率: ${((finalTransaction.cumulativeProfit / parseFloat(document.getElementById('investment').value)) * 100).toFixed(2)}%</div>
+                </div>
+            `;
+          
+            // 显示结果面板
+            resultPanel.style.display = 'block';
+          
+            // 滚动到结果区域
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
